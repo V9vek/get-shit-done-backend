@@ -1,10 +1,12 @@
 package routes
 
 import (
+	"get-shit-done/service"
+
 	"github.com/go-chi/chi/v5"
 )
 
-func SetupRoutes() *chi.Mux {
+func SetupRoutes(authService *service.AuthService) *chi.Mux {
 	r := chi.NewRouter()
 
 	// TODO: route for signup

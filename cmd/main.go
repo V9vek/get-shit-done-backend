@@ -3,7 +3,9 @@ package main
 import (
 	"fmt"
 	"get-shit-done/config"
+	"get-shit-done/repository"
 	"get-shit-done/routes"
+	"get-shit-done/service"
 	"get-shit-done/utils"
 	"net/http"
 )
@@ -11,14 +13,20 @@ import (
 func main() {
 	fmt.Println("Starting server...")
 
-	// db connection
+	// db
 	db := config.DatabaseConnection()
 	defer db.Close()
 
-	// router setup
-	r := routes.SetupRoutes()
+	// repository
+	authRepository := repository.NewAuthRepository(db)
 
-	// server setup
+	// service
+	authService := service.NewAuthService(authRepository)
+
+	// router
+	r := routes.SetupRoutes(authService)
+
+	// server
 	port := ":8080"
 	err := http.ListenAndServe(port, r)
 	utils.PanicIfError(err)
