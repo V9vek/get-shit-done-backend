@@ -31,7 +31,19 @@ func (s *AuthService) SignUp(context context.Context, credentials model.AuthCred
 		return nil, fmt.Errorf("signup failed: %w", err)
 	}
 
-	// generate refresh and access token
+	// generate refresh token
+	refreshToken, err := s.JWTAuth.GenerateRefreshToken(fmt.Sprintf("%d", userId))
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate refresh token: %w", err)
+	}
+
+	// generate access token
+	accessToken, err := s.JWTAuth.GenerateAccessToken(fmt.Sprintf("%d", userId))
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate access token: %w", err)
+	}
+
+	return &model.Token{Refresh: refreshToken, Access: accessToken}, nil
 }
 
 func (s *AuthService) SignIn(context context.Context, username, password string) (*model.Token, error) {
@@ -40,5 +52,17 @@ func (s *AuthService) SignIn(context context.Context, username, password string)
 		return nil, fmt.Errorf("signin: %w", err)
 	}
 
-	// generate refresh and access token
+	// generate refresh token
+	refreshToken, err := s.JWTAuth.GenerateRefreshToken(fmt.Sprintf("%d", userId))
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate refresh token: %w", err)
+	}
+
+	// generate access token
+	accessToken, err := s.JWTAuth.GenerateAccessToken(fmt.Sprintf("%d", userId))
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate access token: %w", err)
+	}
+
+	return &model.Token{Refresh: refreshToken, Access: accessToken}, nil
 }

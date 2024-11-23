@@ -52,7 +52,7 @@ func (r *AuthRepository) SignUp(context context.Context, cred model.AuthCredenti
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(cred.Password), bcrypt.DefaultCost)
 	utils.PanicIfError(err)
 
-	QUERY := "INESRT INTO users (email, username, password) VALUES ($1, $2, $3) RETURNING id"
+	QUERY := "INSERT INTO users (email, username, password) VALUES ($1, $2, $3) RETURNING id"
 
 	var userId int
 	err = r.Db.QueryRowContext(context, QUERY, cred.Email, cred.Username, string(hashedPassword)).Scan(&userId)
@@ -67,7 +67,7 @@ func (r *AuthRepository) SignIn(context context.Context, username string, passwo
 	var dbPassword string
 	var userId int
 
-	QUERY := "SELECT (id, password) FROM users WHERE username = $1"
+	QUERY := "SELECT id, password FROM users WHERE username = $1"
 
 	err := r.Db.QueryRowContext(context, QUERY, username).Scan(&userId, &dbPassword)
 	if err != nil {
@@ -80,4 +80,18 @@ func (r *AuthRepository) SignIn(context context.Context, username string, passwo
 	}
 
 	return userId, nil
+}
+
+func (r *AuthRepository) UpdateRefreshToken(userId int, refreshToken string) error {
+	QUERY := "UPDATE users SET refresh_token = $1 WHERE id = $2"
+
+	result, err := r.Db.Exec(QUERY, refreshToken, userId)
+	if err != nil {
+		return fmt.Errorf("failed to update refresh token: %w", err)
+	}
+	if r, _ := result.RowsAffected(); r == 0 {
+		return fmt.Errorf("no rows updated, user not found")
+	}
+
+	return nil
 }

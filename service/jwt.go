@@ -79,6 +79,9 @@ func (j JWTAuth) IsRefreshTokenValid(context context.Context, refreshToken strin
 
 	// check if the refresh token is of the requested user or not
 	sub, err := getSubjectFromToken(token)
+	if err != nil {
+		return false, fmt.Errorf("failed to get the subject from token: %w", err)
+	}
 
 	userId, err := strconv.Atoi(sub)
 	if err != nil {
@@ -182,7 +185,16 @@ func (j JWTAuth) GenerateRefreshToken(subject string) (string, error) {
 		return "", fmt.Errorf("could not generate refresh token")
 	}
 
-	// TODO: update the refresh token in DB
+	// store/update the refresh token in DB
+	userId, err := strconv.Atoi(subject)
+	if err != nil {
+		return "", fmt.Errorf("sub has unsupported format: %w", err)
+	}
+
+	err = j.authRepo.UpdateRefreshToken(userId, token)
+	if err != nil {
+		return "", fmt.Errorf("failed to update refresh token in db: %w", err)
+	}
 
 	return token, nil
 }
