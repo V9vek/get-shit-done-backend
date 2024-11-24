@@ -11,18 +11,24 @@ import (
 	"net/http"
 	"os"
 	"time"
-)
 
-var (
-	jwtSecretKeyAccess     = os.Getenv("JWT_SECRET_KEY_ACCESS")
-	jwtSecretKeyRefresh    = os.Getenv("JWT_SECRET_KEY_REFRESH")
-	jwtIss                 = os.Getenv("JWT_ISS")
-	jwtAccessTokenExpTime  = os.Getenv("JWT_ACCESS_TOKEN_EXP_TIME")
-	jwtRefreshTokenExpTime = os.Getenv("JWT_REFRESH_TOKEN_EXP_TIME")
+	"github.com/joho/godotenv"
 )
 
 func main() {
 	fmt.Println("Starting server...")
+
+	// load env
+	err := godotenv.Load()
+	utils.PanicIfError(err)
+
+	var (
+		jwtSecretKeyAccess     = os.Getenv("JWT_SECRET_KEY_ACCESS")
+		jwtSecretKeyRefresh    = os.Getenv("JWT_SECRET_KEY_REFRESH")
+		jwtIss                 = os.Getenv("JWT_ISS")
+		jwtAccessTokenExpTime  = os.Getenv("JWT_ACCESS_TOKEN_EXP_TIME")
+		jwtRefreshTokenExpTime = os.Getenv("JWT_REFRESH_TOKEN_EXP_TIME")
+	)
 
 	// db
 	db := config.DatabaseConnection()
@@ -32,9 +38,9 @@ func main() {
 	authRepository := repository.NewAuthRepository(db)
 
 	// jwt
-	jwtAccessTokenExpTimeDuration, err := time.ParseDuration("5m")
+	jwtAccessTokenExpTimeDuration, err := time.ParseDuration(jwtAccessTokenExpTime)
 	utils.PanicIfError(err)
-	jwtRefreshTokenExpTimeDuration, err := time.ParseDuration("24h")
+	jwtRefreshTokenExpTimeDuration, err := time.ParseDuration(jwtRefreshTokenExpTime)
 	utils.PanicIfError(err)
 
 	jwtAuth := service.NewJWTAuth(
