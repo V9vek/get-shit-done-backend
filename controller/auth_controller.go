@@ -11,7 +11,7 @@ import (
 
 type AuthController struct {
 	authService          *service.AuthService
-	jwtService           *service.JWTAuth
+	JwtService           *service.JWTAuth
 	accessTokenDuration  time.Duration
 	refreshTokenDuration time.Duration
 }
@@ -23,7 +23,7 @@ func NewAuthController(
 ) *AuthController {
 	return &AuthController{
 		authService:          authService,
-		jwtService:           jwtService,
+		JwtService:           jwtService,
 		accessTokenDuration:  accessTokenDuration,
 		refreshTokenDuration: refreshTokenDuration,
 	}
@@ -86,6 +86,7 @@ func (c *AuthController) SignIn(writer http.ResponseWriter, requests *http.Reque
 	}
 
 	c.setTokensInCookies(writer, token)
+	fmt.Println(token.Access)
 
 	webResponse := model.WebResponse{
 		Code:   http.StatusOK,
@@ -133,7 +134,7 @@ func (c *AuthController) RefreshRefreshToken(writer http.ResponseWriter, request
 	}
 
 	refreshToken := refreshTokenCookie.Value
-	updatedToken, err := c.jwtService.RefreshRefreshToken(requests.Context(), refreshToken)
+	updatedToken, err := c.JwtService.RefreshRefreshToken(requests.Context(), refreshToken)
 	if err != nil {
 		webResponse := model.WebResponse{
 			Code:   http.StatusUnauthorized,

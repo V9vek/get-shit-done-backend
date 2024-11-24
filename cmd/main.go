@@ -32,7 +32,7 @@ func main() {
 	authRepository := repository.NewAuthRepository(db)
 
 	// jwt
-	jwtAccessTokenExpTimeDuration, err := time.ParseDuration("1m")
+	jwtAccessTokenExpTimeDuration, err := time.ParseDuration("5m")
 	utils.PanicIfError(err)
 	jwtRefreshTokenExpTimeDuration, err := time.ParseDuration("24h")
 	utils.PanicIfError(err)
