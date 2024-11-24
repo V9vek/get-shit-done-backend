@@ -20,7 +20,7 @@ func NewAuthRepository(Db *sql.DB) *AuthRepository {
 
 func (r *AuthRepository) DoesUserIdExist(context context.Context, userId int) (bool, error) {
 	var id int
-	QUERY := "SELECT username FROM users WHERE id = $1"
+	QUERY := "SELECT id FROM users WHERE id = $1"
 
 	err := r.Db.QueryRowContext(context, QUERY, userId).Scan(&id)
 	if err == sql.ErrNoRows {
