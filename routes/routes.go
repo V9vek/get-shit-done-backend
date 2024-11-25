@@ -3,12 +3,14 @@ package routes
 import (
 	"get-shit-done/controller"
 	"get-shit-done/middleware"
-	"net/http"
 
 	"github.com/go-chi/chi/v5"
 )
 
-func SetupRoutes(authController *controller.AuthController) *chi.Mux {
+func SetupRoutes(
+	authController *controller.AuthController,
+	todoController *controller.TodoController,
+) *chi.Mux {
 	r := chi.NewRouter()
 
 	r.Route("/auth", func(r chi.Router) {
@@ -19,9 +21,9 @@ func SetupRoutes(authController *controller.AuthController) *chi.Mux {
 
 	r.Route("/api", func(r chi.Router) {
 		r.Use(middleware.ValidateAccessToken(authController.JwtService))
-		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-			w.Write([]byte("home"))
-		})
+		r.Get("/", todoController.FindTodoByUserId)
+		r.Post("/add", todoController.AddTodo)
+		r.Patch("/update/{todoId}", todoController.AddTodo)
 	})
 
 	return r

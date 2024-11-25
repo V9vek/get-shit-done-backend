@@ -24,7 +24,6 @@ func ValidateAccessToken(jwtAuth *service.JWTAuth) func(http.Handler) http.Handl
 			}
 
 			token := headerParts[1]
-			fmt.Println(token)
 			isValid, err := jwtAuth.IsAccessTokenValid(token)
 			if !isValid || err != nil {
 				http.Error(w, fmt.Sprintf("invalid or expired token %v", err), http.StatusUnauthorized)

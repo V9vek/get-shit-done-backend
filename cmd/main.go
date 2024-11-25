@@ -36,6 +36,7 @@ func main() {
 
 	// repository
 	authRepository := repository.NewAuthRepository(db)
+	todoRepository := repository.NewTodoRepository(db)
 
 	// jwt
 	jwtAccessTokenExpTimeDuration, err := time.ParseDuration(jwtAccessTokenExpTime)
@@ -54,6 +55,7 @@ func main() {
 
 	// service
 	authService := service.NewAuthService(authRepository, jwtAuth)
+	todoService := service.NewTodoService(todoRepository)
 
 	// controller
 	authController := controller.NewAuthController(
@@ -62,9 +64,10 @@ func main() {
 		jwtAccessTokenExpTimeDuration,
 		jwtRefreshTokenExpTimeDuration,
 	)
+	todoController := controller.NewTodoController(todoService)
 
 	// router
-	r := routes.SetupRoutes(authController)
+	r := routes.SetupRoutes(authController, todoController)
 
 	// server
 	port := ":8080"
