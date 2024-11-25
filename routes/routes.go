@@ -23,8 +23,10 @@ func SetupRoutes(
 		r.Use(middleware.ValidateAccessToken(authController.JwtService))
 		r.Get("/", todoController.FindTodoByUserId)
 		r.Post("/add", todoController.AddTodo)
-		r.Patch("/update/{todoId}", todoController.AddTodo)
+		r.Patch("/update/{todoId}", todoController.UpdateTodo)
 	})
+
+	// TODO: logout endpoint
 
 	return r
 }

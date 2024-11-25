@@ -64,7 +64,7 @@ func main() {
 		jwtAccessTokenExpTimeDuration,
 		jwtRefreshTokenExpTimeDuration,
 	)
-	todoController := controller.NewTodoController(todoService)
+	todoController := controller.NewTodoController(todoService, jwtAuth)
 
 	// router
 	r := routes.SetupRoutes(authController, todoController)

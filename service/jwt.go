@@ -96,6 +96,14 @@ func (j JWTAuth) IsRefreshTokenValid(context context.Context, refreshToken strin
 	return isUserIdExist, nil
 }
 
+func (j JWTAuth) GetSubjectFromAccessToken(tokenStr string) (string, error) {
+	token, err := parse(tokenStr, j.secretKeyAccess)
+	if err != nil {
+		return "", fmt.Errorf("couldn't parse token string and secret: %w", err)
+	}
+	return getSubjectFromToken(token)
+}
+
 func getSubjectFromToken(token *jwt.Token) (string, error) {
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
 		if sub, ok := claims["sub"].(string); ok {
