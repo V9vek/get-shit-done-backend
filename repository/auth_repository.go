@@ -95,3 +95,18 @@ func (r *AuthRepository) UpdateRefreshToken(userId int, refreshToken string) err
 
 	return nil
 }
+
+func (r *AuthRepository) DeleteRefreshToken(userId int, refreshToken string) error {
+	fmt.Println(userId, refreshToken)
+	QUERY := "UPDATE users SET refresh_token = '' WHERE id = $1 AND refresh_token = $2"
+
+	result, err := r.Db.Exec(QUERY, userId, refreshToken)
+	if err != nil {
+		return fmt.Errorf("failed to delete the refresh token: %w", err)
+	}
+	if r, _ := result.RowsAffected(); r == 0 {
+		return fmt.Errorf("no rows updated, user not found")
+	}
+
+	return nil
+}

@@ -66,3 +66,20 @@ func (s *AuthService) SignIn(context context.Context, username, password string)
 
 	return &model.Token{Refresh: refreshToken, Access: accessToken}, nil
 }
+
+func (s *AuthService) DeleteRefreshToken(context context.Context, userId int, refreshToken string) error {
+	isUserIdExist, err := s.AuthRepository.DoesUserIdExist(context, userId)
+	if err != nil {
+		return fmt.Errorf("user does not exist which has this refresh token: %w", err)
+	}
+
+	if isUserIdExist {
+		err := s.AuthRepository.DeleteRefreshToken(userId, refreshToken)
+		if err != nil {
+			return fmt.Errorf("failed to delete refresh token: %w", err)
+		}
+		return nil
+	}
+
+	return fmt.Errorf("user does not exist")
+}

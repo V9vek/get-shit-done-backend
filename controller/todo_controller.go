@@ -7,7 +7,6 @@ import (
 	"get-shit-done/utils"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -21,7 +20,8 @@ func NewTodoController(todoService *service.TodoService, jwtService *service.JWT
 	return &TodoController{todoService: todoService, jwtService: jwtService}
 }
 
-func getAccessTokenFromCookies(w http.ResponseWriter, r *http.Request) string {
+/*
+func getAccessTokenFromHeaders(w http.ResponseWriter, r *http.Request) string {
 	auth := r.Header.Get("Authorization")
 
 	if auth == "" {
@@ -37,6 +37,17 @@ func getAccessTokenFromCookies(w http.ResponseWriter, r *http.Request) string {
 
 	token := headerParts[1]
 	return token
+}
+*/
+
+func getAccessTokenFromCookies(w http.ResponseWriter, r *http.Request) string {
+	accessTokenCookie, err := r.Cookie("access_token")
+	if err != nil {
+		http.Error(w, fmt.Sprintf("access token not found: %v", err), http.StatusUnauthorized)
+		return ""
+	}
+
+	return accessTokenCookie.Value
 }
 
 func (c *TodoController) AddTodo(writer http.ResponseWriter, requests *http.Request) {

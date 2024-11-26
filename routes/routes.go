@@ -24,9 +24,8 @@ func SetupRoutes(
 		r.Get("/", todoController.FindTodoByUserId)
 		r.Post("/add", todoController.AddTodo)
 		r.Patch("/update/{todoId}", todoController.UpdateTodo)
+		r.Post("/logout", authController.Logout)
 	})
-
-	// TODO: logout endpoint
 
 	return r
 }

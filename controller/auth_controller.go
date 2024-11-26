@@ -6,6 +6,7 @@ import (
 	"get-shit-done/service"
 	"get-shit-done/utils"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -153,4 +154,57 @@ func (c *AuthController) RefreshRefreshToken(writer http.ResponseWriter, request
 		Data:   nil,
 	}
 	utils.WriteResponseBody(writer, webResponse)
+}
+
+func (c *AuthController) Logout(writer http.ResponseWriter, requests *http.Request) {
+	// delete the refresh token
+	refreshTokenCookie, err := requests.Cookie("refresh_token")
+
+	if err != nil {
+		http.Error(writer, "refresh token not found", http.StatusUnauthorized)
+		return
+	}
+
+	refreshToken := refreshTokenCookie.Value
+
+	sub, err := c.JwtService.GetSubjectFromRefreshToken(refreshToken)
+	if err != nil {
+		http.Error(writer, "failed to get the subject from token", http.StatusUnauthorized)
+		return
+	}
+
+	userId, err := strconv.Atoi(sub)
+	if err != nil {
+		http.Error(writer, "token's subject has invalid format", http.StatusUnauthorized)
+		return
+	}
+
+	err = c.authService.DeleteRefreshToken(requests.Context(), userId, refreshToken)
+	if err != nil {
+		http.Error(writer, fmt.Sprintf("failed to log out: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	// Clear cookies
+	http.SetCookie(writer, &http.Cookie{
+		Name:     "access_token",
+		Value:    "",
+		Path:     "/",
+		Domain:   "",         // Set to your domain if needed
+		Expires:  time.Now(), // Set expiration as per your requirements
+		Secure:   true,       // Set to true if using HTTPS
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+	})
+
+	http.SetCookie(writer, &http.Cookie{
+		Name:     "refresh_token",
+		Value:    "",
+		Path:     "/",
+		Domain:   "",         // Set to your domain if needed
+		Expires:  time.Now(), // Set expiration as per your requirements
+		Secure:   true,       // Set to true if using HTTPS
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+	})
 }
