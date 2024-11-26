@@ -33,23 +33,13 @@ func NewAuthController(
 func (c *AuthController) SignUp(writer http.ResponseWriter, requests *http.Request) {
 	var cred model.AuthCredentials
 	if err := utils.ReadFromRequestBody(requests, &cred); err != nil {
-		webResponse := model.WebResponse{
-			Code:   http.StatusUnauthorized,
-			Status: fmt.Sprintf("Invalid credentials: %v", err),
-			Data:   nil,
-		}
-		utils.WriteResponseBody(writer, webResponse)
+		http.Error(writer, fmt.Sprintf("Invalid credentials: %v", err), http.StatusUnauthorized)
 		return
 	}
 
 	token, err := c.authService.SignUp(requests.Context(), cred)
 	if err != nil {
-		webResponse := model.WebResponse{
-			Code:   http.StatusUnauthorized,
-			Status: fmt.Sprintf("Failed to signup: %v", err),
-			Data:   nil,
-		}
-		utils.WriteResponseBody(writer, webResponse)
+		http.Error(writer, fmt.Sprintf("Failed to sign up: %v", err), http.StatusUnauthorized)
 		return
 	}
 
@@ -66,23 +56,13 @@ func (c *AuthController) SignUp(writer http.ResponseWriter, requests *http.Reque
 func (c *AuthController) SignIn(writer http.ResponseWriter, requests *http.Request) {
 	var cred model.SigninCredentials
 	if err := utils.ReadFromRequestBody(requests, &cred); err != nil {
-		webResponse := model.WebResponse{
-			Code:   http.StatusUnauthorized,
-			Status: fmt.Sprintf("Invalid credentials: %v", err),
-			Data:   nil,
-		}
-		utils.WriteResponseBody(writer, webResponse)
+		http.Error(writer, fmt.Sprintf("Invalid credentials: %v", err), http.StatusUnauthorized)
 		return
 	}
 
 	token, err := c.authService.SignIn(requests.Context(), cred.Username, cred.Password)
 	if err != nil {
-		webResponse := model.WebResponse{
-			Code:   http.StatusUnauthorized,
-			Status: fmt.Sprintf("Failed to signin: %v", err),
-			Data:   nil,
-		}
-		utils.WriteResponseBody(writer, webResponse)
+		http.Error(writer, fmt.Sprintf("Failed to sign in: %v", err), http.StatusUnauthorized)
 		return
 	}
 
@@ -125,24 +105,14 @@ func (c *AuthController) RefreshRefreshToken(writer http.ResponseWriter, request
 	refreshTokenCookie, err := requests.Cookie("refresh_token")
 
 	if err != nil {
-		webResponse := model.WebResponse{
-			Code:   http.StatusUnauthorized,
-			Status: fmt.Sprintf("refresh token not found: %v", err),
-			Data:   nil,
-		}
-		utils.WriteResponseBody(writer, webResponse)
+		http.Error(writer, fmt.Sprintf("refresh token not found: %v", err), http.StatusUnauthorized)
 		return
 	}
 
 	refreshToken := refreshTokenCookie.Value
 	updatedToken, err := c.JwtService.RefreshRefreshToken(requests.Context(), refreshToken)
 	if err != nil {
-		webResponse := model.WebResponse{
-			Code:   http.StatusUnauthorized,
-			Status: fmt.Sprintf("failed to refresh refresh token: %v", err),
-			Data:   nil,
-		}
-		utils.WriteResponseBody(writer, webResponse)
+		http.Error(writer, fmt.Sprintf("Failed to refresh refresh token: %v", err), http.StatusUnauthorized)
 		return
 	}
 
@@ -207,4 +177,20 @@ func (c *AuthController) Logout(writer http.ResponseWriter, requests *http.Reque
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
 	})
+}
+
+func (c *AuthController) VerifyAuth(writer http.ResponseWriter, requests *http.Request) {
+	accessTokenCookie, err := requests.Cookie("access_token")
+	if err != nil {
+		http.Error(writer, fmt.Sprintf("access token not found: %v", err), http.StatusUnauthorized)
+		return
+	}
+
+	accessToken := accessTokenCookie.Value
+
+	isValid, err := c.JwtService.IsAccessTokenValid(accessToken)
+	if !isValid || err != nil {
+		http.Error(writer, fmt.Sprintf("invalid or expired token %v", err), http.StatusUnauthorized)
+		return
+	}
 }
