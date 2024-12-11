@@ -47,6 +47,22 @@ func (r *TodoRepository) FindAll(context context.Context, userId int) ([]model.T
 	return todos, nil
 }
 
+func (r *TodoRepository) FindTodo(todoId int) (*model.Todo, error) {
+	QUERY := "SELECT * FROM todos WHERE id = $1"
+
+	todo := &model.Todo{}
+	err := r.Db.QueryRow(QUERY, todoId).Scan(&todo.Id, &todo.Title, &todo.Description, &todo.IsCompleted, &todo.CreatedAt, &todo.UserId)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("no todo found with id: %d", todoId)
+		}
+		return nil, fmt.Errorf("failed to get the todo: %w", err)
+	}
+
+	return todo, nil
+}
+
 func (r *TodoRepository) Update(context context.Context, todoId int, todo model.Todo) error {
 	QUERY := "UPDATE todos SET title=$1, description=$2, completed=$3 WHERE id=$4 AND user_id=$5"
 

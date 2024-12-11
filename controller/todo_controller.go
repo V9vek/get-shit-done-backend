@@ -20,35 +20,15 @@ func NewTodoController(todoService *service.TodoService, jwtService *service.JWT
 	return &TodoController{todoService: todoService, jwtService: jwtService}
 }
 
-/*
-func getAccessTokenFromHeaders(w http.ResponseWriter, r *http.Request) string {
-	auth := r.Header.Get("Authorization")
+// func getAccessTokenFromCookies(w http.ResponseWriter, r *http.Request) string {
+// 	accessTokenCookie, err := r.Cookie("access_token")
+// 	if err != nil {
+// 		http.Error(w, fmt.Sprintf("access token not found: %v", err), http.StatusUnauthorized)
+// 		return ""
+// 	}
 
-	if auth == "" {
-		http.Error(w, "missing or malformed token", http.StatusUnauthorized)
-		return ""
-	}
-
-	headerParts := strings.Split(auth, " ")
-	if len(headerParts) != 2 || headerParts[0] != "Bearer" {
-		http.Error(w, "missing or malformed token", http.StatusUnauthorized)
-		return ""
-	}
-
-	token := headerParts[1]
-	return token
-}
-*/
-
-func getAccessTokenFromCookies(w http.ResponseWriter, r *http.Request) string {
-	accessTokenCookie, err := r.Cookie("access_token")
-	if err != nil {
-		http.Error(w, fmt.Sprintf("access token not found: %v", err), http.StatusUnauthorized)
-		return ""
-	}
-
-	return accessTokenCookie.Value
-}
+// 	return accessTokenCookie.Value
+// }
 
 func (c *TodoController) AddTodo(writer http.ResponseWriter, requests *http.Request) {
 	var todo model.Todo
@@ -58,7 +38,7 @@ func (c *TodoController) AddTodo(writer http.ResponseWriter, requests *http.Requ
 	}
 
 	// setting the userid from the access token
-	userIdStr, err := c.jwtService.GetSubjectFromAccessToken(getAccessTokenFromCookies(writer, requests))
+	userIdStr, err := c.jwtService.GetSubjectFromAccessToken(getAccessTokenFromHeaders(writer, requests))
 	if err != nil {
 		http.Error(writer, fmt.Sprintf("token's subject has invalid format: %v", err), http.StatusUnauthorized)
 		return
@@ -81,7 +61,7 @@ func (c *TodoController) AddTodo(writer http.ResponseWriter, requests *http.Requ
 	webResponse := model.WebResponse{
 		Code:   http.StatusOK,
 		Status: "todo added successfully",
-		Data:   nil,
+		Data:   todo,
 	}
 	utils.WriteResponseBody(writer, webResponse)
 }
@@ -100,22 +80,38 @@ func (c *TodoController) UpdateTodo(writer http.ResponseWriter, requests *http.R
 		return
 	}
 
+	fmt.Printf("%+v\n", todo)
+
 	// setting the userid from the access token
-	userIdStr, err := c.jwtService.GetSubjectFromAccessToken(getAccessTokenFromCookies(writer, requests))
+	// userIdStr, err := c.jwtService.GetSubjectFromAccessToken(getAccessTokenFromHeaders(writer, requests))
+	// if err != nil {
+	// 	http.Error(writer, fmt.Sprintf("token's subject has invalid format: %v", err), http.StatusUnauthorized)
+	// 	return
+	// }
+
+	// userId, err := strconv.Atoi(userIdStr)
+	// if err != nil {
+	// 	http.Error(writer, fmt.Sprintf("can not parse subject from token: %v", err), http.StatusBadRequest)
+	// 	return
+	// }
+
+	// fetch all details of Todo
+	oldTodo, err := c.todoService.FindTodoByTodoId(todoId)
 	if err != nil {
-		http.Error(writer, fmt.Sprintf("token's subject has invalid format: %v", err), http.StatusUnauthorized)
+		http.Error(writer, fmt.Sprintf("%v", err), http.StatusBadRequest)
 		return
 	}
-
-	userId, err := strconv.Atoi(userIdStr)
-	if err != nil {
-		http.Error(writer, fmt.Sprintf("can not parse subject from token: %v", err), http.StatusBadRequest)
-		return
+	if todo.Title != "" {
+		oldTodo.Title = todo.Title
+	}
+	if todo.Description != "" {
+		oldTodo.Description = todo.Description
+	}
+	if oldTodo.IsCompleted != todo.IsCompleted {
+		oldTodo.IsCompleted = todo.IsCompleted
 	}
 
-	todo.UserId = userId
-
-	err = c.todoService.UpdateTodo(requests.Context(), todoId, todo)
+	err = c.todoService.UpdateTodo(requests.Context(), todoId, *oldTodo)
 	if err != nil {
 		http.Error(writer, fmt.Sprintf("%v", err), http.StatusBadRequest)
 		return
@@ -130,7 +126,7 @@ func (c *TodoController) UpdateTodo(writer http.ResponseWriter, requests *http.R
 }
 
 func (c *TodoController) FindTodoByUserId(writer http.ResponseWriter, requests *http.Request) {
-	userIdStr, err := c.jwtService.GetSubjectFromAccessToken(getAccessTokenFromCookies(writer, requests))
+	userIdStr, err := c.jwtService.GetSubjectFromAccessToken(getAccessTokenFromHeaders(writer, requests))
 	if err != nil {
 		http.Error(writer, fmt.Sprintf("token's subject has invalid format: %v", err), http.StatusUnauthorized)
 		return

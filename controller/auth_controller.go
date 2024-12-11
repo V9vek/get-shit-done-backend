@@ -7,6 +7,7 @@ import (
 	"get-shit-done/utils"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -43,12 +44,10 @@ func (c *AuthController) SignUp(writer http.ResponseWriter, requests *http.Reque
 		return
 	}
 
-	c.setTokensInCookies(writer, token)
-
 	webResponse := model.WebResponse{
 		Code:   http.StatusOK,
 		Status: "successfully signed up",
-		Data:   nil,
+		Data:   token.Access,
 	}
 	utils.WriteResponseBody(writer, webResponse)
 }
@@ -66,13 +65,12 @@ func (c *AuthController) SignIn(writer http.ResponseWriter, requests *http.Reque
 		return
 	}
 
-	c.setTokensInCookies(writer, token)
 	fmt.Println(token.Access)
 
 	webResponse := model.WebResponse{
 		Code:   http.StatusOK,
 		Status: "successfully signed in",
-		Data:   nil,
+		Data:   token.Access,
 	}
 	utils.WriteResponseBody(writer, webResponse)
 }
@@ -116,12 +114,13 @@ func (c *AuthController) RefreshRefreshToken(writer http.ResponseWriter, request
 		return
 	}
 
+	// remove this later
 	c.setTokensInCookies(writer, updatedToken)
 
 	webResponse := model.WebResponse{
 		Code:   http.StatusOK,
 		Status: "successfully refreshed the tokens",
-		Data:   nil,
+		Data:   updatedToken.Access,
 	}
 	utils.WriteResponseBody(writer, webResponse)
 }
@@ -162,7 +161,7 @@ func (c *AuthController) Logout(writer http.ResponseWriter, requests *http.Reque
 		Path:     "/",
 		Domain:   "",         // Set to your domain if needed
 		Expires:  time.Now(), // Set expiration as per your requirements
-		Secure:   true,       // Set to true if using HTTPS
+		Secure:   false,      // Set to true if using HTTPS
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
 	})
@@ -173,24 +172,89 @@ func (c *AuthController) Logout(writer http.ResponseWriter, requests *http.Reque
 		Path:     "/",
 		Domain:   "",         // Set to your domain if needed
 		Expires:  time.Now(), // Set expiration as per your requirements
-		Secure:   true,       // Set to true if using HTTPS
+		Secure:   false,      // Set to true if using HTTPS
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
 	})
 }
 
+func getAccessTokenFromHeaders(w http.ResponseWriter, r *http.Request) string {
+	auth := r.Header.Get("Authorization")
+
+	if auth == "" {
+		http.Error(w, "missing or malformed token", http.StatusUnauthorized)
+		return ""
+	}
+
+	headerParts := strings.Split(auth, " ")
+	if len(headerParts) != 2 || headerParts[0] != "Bearer" {
+		http.Error(w, "missing or malformed token", http.StatusUnauthorized)
+		return ""
+	}
+
+	token := headerParts[1]
+	return token
+}
+
 func (c *AuthController) VerifyAuth(writer http.ResponseWriter, requests *http.Request) {
-	accessTokenCookie, err := requests.Cookie("access_token")
-	if err != nil {
-		http.Error(writer, fmt.Sprintf("access token not found: %v", err), http.StatusUnauthorized)
+	auth := requests.Header.Get("Authorization")
+
+	if auth == "" {
+		http.Error(writer, "missing or malformed token", http.StatusUnauthorized)
 		return
 	}
 
-	accessToken := accessTokenCookie.Value
+	headerParts := strings.Split(auth, " ")
+	if len(headerParts) != 2 || headerParts[0] != "Bearer" {
+		http.Error(writer, "missing or malformed token", http.StatusUnauthorized)
+		return
+	}
+
+	accessToken := headerParts[1]
 
 	isValid, err := c.JwtService.IsAccessTokenValid(accessToken)
 	if !isValid || err != nil {
-		http.Error(writer, fmt.Sprintf("invalid or expired token %v", err), http.StatusUnauthorized)
-		return
+		if err.Error() == "access token is expired" {
+			sub, err := c.JwtService.GetSubjectFromAccessToken(accessToken)
+			if err != nil {
+				http.Error(writer, fmt.Sprintf("can't get sub from accessToken: %v", err), http.StatusUnauthorized)
+				return
+			}
+
+			userId, err := strconv.Atoi(sub)
+			if err != nil {
+				http.Error(writer, fmt.Sprintf("not valid subject: %v", err), http.StatusUnauthorized)
+				return
+			}
+
+			refreshToken, err := c.authService.AuthRepository.GetRefreshTokenFromDb(userId)
+			if err != nil {
+				http.Error(writer, fmt.Sprintf("can't get refresh token from db: %v", err), http.StatusUnauthorized)
+				return
+			}
+
+			tokens, err := c.JwtService.RefreshRefreshToken(requests.Context(), refreshToken)
+			if err != nil {
+				http.Error(writer, fmt.Sprintf("can't refresh the tokens: %v", err), http.StatusUnauthorized)
+				return
+			}
+
+			webResponse := model.WebResponse{
+				Code:   http.StatusOK,
+				Status: "successfully refreshed the token",
+				Data:   tokens.Access,
+			}
+			utils.WriteResponseBody(writer, webResponse)
+		} else {
+			http.Error(writer, fmt.Sprintf("invalid token %v", err), http.StatusUnauthorized)
+			return
+		}
 	}
+
+	webResponse := model.WebResponse{
+		Code:   http.StatusOK,
+		Status: "successfully validated the token",
+		Data:   nil,
+	}
+	utils.WriteResponseBody(writer, webResponse)
 }

@@ -57,10 +57,10 @@ func (j JWTAuth) IsAccessTokenValid(accessToken string) (bool, error) {
 		return false, fmt.Errorf("can not parse the access token %w", err)
 	}
 
-	isValid, err := isValidTime(token)
+	isValid, _ := isValidTime(token)
 
 	if !isValid {
-		return false, fmt.Errorf("access token is expired: %w", err)
+		return false, fmt.Errorf("access token is expired")
 	}
 	return true, nil
 }
@@ -168,6 +168,17 @@ func (j JWTAuth) RefreshRefreshToken(context context.Context, refreshToken strin
 	updatedAccessTokenStr, err := j.GenerateAccessToken(sub)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate access token: %w", err)
+	}
+
+	// update the refresh token in DB
+	userId, err := strconv.Atoi(sub)
+	if err != nil {
+		return nil, fmt.Errorf("sub has unsupported format: %w", err)
+	}
+
+	err = j.authRepo.UpdateRefreshToken(userId, updatedRefreshTokenStr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update refresh token in db: %w", err)
 	}
 
 	return &model.Token{Refresh: updatedRefreshTokenStr, Access: updatedAccessTokenStr}, nil

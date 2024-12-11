@@ -30,6 +30,14 @@ func (s *TodoService) FindTodosByUserId(context context.Context, userId int) ([]
 	return todos, nil
 }
 
+func (s *TodoService) FindTodoByTodoId(todoId int) (*model.Todo, error) {
+	todo, err := s.TodoRepository.FindTodo(todoId)
+	if err != nil {
+		return nil, err
+	}
+	return todo, nil
+}
+
 func (s *TodoService) UpdateTodo(context context.Context, todoId int, todo model.Todo) error {
 	err := s.TodoRepository.Update(context, todoId, todo)
 	if err != nil {
