@@ -82,11 +82,11 @@ func (r *AuthRepository) SignIn(context context.Context, username string, passwo
 	return userId, nil
 }
 
-func (r *AuthRepository) GetRefreshTokenFromDb(userId int) (string, error) {
+func (r *AuthRepository) GetRefreshTokenFromDb(context context.Context, userId int) (string, error) {
 	var refreshTokenStr string
-	QUERY := "SELECT refresh_token FROM users WHERE userId = $1"
+	QUERY := "SELECT refresh_token FROM users WHERE id = $1"
 
-	err := r.Db.QueryRow(QUERY, userId).Scan(&refreshTokenStr)
+	err := r.Db.QueryRowContext(context, QUERY, userId).Scan(&refreshTokenStr)
 	if err != nil {
 		return "", fmt.Errorf("could not check if userId exist or not: %w", err)
 	}
@@ -109,7 +109,6 @@ func (r *AuthRepository) UpdateRefreshToken(userId int, refreshToken string) err
 }
 
 func (r *AuthRepository) DeleteRefreshToken(userId int, refreshToken string) error {
-	fmt.Println(userId, refreshToken)
 	QUERY := "UPDATE users SET refresh_token = '' WHERE id = $1 AND refresh_token = $2"
 
 	result, err := r.Db.Exec(QUERY, userId, refreshToken)

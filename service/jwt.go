@@ -37,15 +37,17 @@ func NewJWTAuth(
 }
 
 func parse(tokenString string, secretKey string) (*jwt.Token, error) {
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-		}
-		return []byte(secretKey), nil
-	})
+	// token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+	// 	if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+	// 		return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+	// 	}
+	// 	return []byte(secretKey), nil
+	// })
+
+	token, _, err := new(jwt.Parser).ParseUnverified(tokenString, jwt.MapClaims{})
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse token: %w", err)
 	}
 
 	return token, nil
@@ -113,7 +115,7 @@ func (j JWTAuth) GetSubjectFromRefreshToken(tokenStr string) (string, error) {
 }
 
 func getSubjectFromToken(token *jwt.Token) (string, error) {
-	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+	if claims, ok := token.Claims.(jwt.MapClaims); ok {
 		if sub, ok := claims["sub"].(string); ok {
 			return sub, nil
 		}
@@ -123,7 +125,7 @@ func getSubjectFromToken(token *jwt.Token) (string, error) {
 }
 
 func isValidTime(token *jwt.Token) (bool, error) {
-	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+	if claims, ok := token.Claims.(jwt.MapClaims); ok {
 		exp, ok := claims["exp"].(float64)
 		if !ok {
 			return false, fmt.Errorf("exp property has invalid value")

@@ -227,7 +227,7 @@ func (c *AuthController) VerifyAuth(writer http.ResponseWriter, requests *http.R
 				return
 			}
 
-			refreshToken, err := c.authService.AuthRepository.GetRefreshTokenFromDb(userId)
+			refreshToken, err := c.authService.GetRefreshToken(requests.Context(), userId)
 			if err != nil {
 				http.Error(writer, fmt.Sprintf("can't get refresh token from db: %v", err), http.StatusUnauthorized)
 				return
@@ -245,6 +245,7 @@ func (c *AuthController) VerifyAuth(writer http.ResponseWriter, requests *http.R
 				Data:   tokens.Access,
 			}
 			utils.WriteResponseBody(writer, webResponse)
+			return
 		} else {
 			http.Error(writer, fmt.Sprintf("invalid token %v", err), http.StatusUnauthorized)
 			return
@@ -254,7 +255,7 @@ func (c *AuthController) VerifyAuth(writer http.ResponseWriter, requests *http.R
 	webResponse := model.WebResponse{
 		Code:   http.StatusOK,
 		Status: "successfully validated the token",
-		Data:   nil,
+		Data:   accessToken,
 	}
 	utils.WriteResponseBody(writer, webResponse)
 }

@@ -83,3 +83,12 @@ func (s *AuthService) DeleteRefreshToken(context context.Context, userId int, re
 
 	return fmt.Errorf("user does not exist")
 }
+
+func (s *AuthService) GetRefreshToken(context context.Context, userId int) (string, error) {
+	refreshToken, err := s.AuthRepository.GetRefreshTokenFromDb(context, userId)
+	if err != nil {
+		return "", fmt.Errorf("user does not exist which has this user id: %w", err)
+	}
+
+	return refreshToken, nil
+}

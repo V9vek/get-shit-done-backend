@@ -14,9 +14,7 @@ func ReadFromRequestBody(r *http.Request, result interface{}) error {
 }
 
 func WriteResponseBody(write http.ResponseWriter, response interface{}) {
-	// TODO: create middleware to set `content type: application/json` on every outgoing response
-	write.Header().Add("Content-Type", "application/json")
-	encoder := json.NewEncoder(write)
-	err := encoder.Encode(response)
+	write.Header().Set("Content-Type", "application/json")
+	err := json.NewEncoder(write).Encode(response)
 	PanicIfError(err)
 }
